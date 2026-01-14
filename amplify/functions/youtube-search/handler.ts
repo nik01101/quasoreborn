@@ -1,6 +1,6 @@
-import { Schema } from '../data/resource';
+import { type Schema } from '../../data/resource';
 
-export const handler: Schema['youtube-search']['Handler'] = async (event) => {
+export const handler: any = async (event: any) => {
     const { query } = event.arguments;
     const API_KEY = process.env.YOUTUBE_API_KEY;
 
@@ -16,7 +16,7 @@ export const handler: Schema['youtube-search']['Handler'] = async (event) => {
 
     const data = await response.json();
 
-    return data.items.map((item: any) => ({
+    return (data.items || []).map((item: any) => ({
         id: item.id.videoId,
         title: item.snippet.title,
         artist: item.snippet.channelTitle,

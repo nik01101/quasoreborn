@@ -1,71 +1,77 @@
-import { defineData, type ClientSchema } from '@aws-amplify/backend';
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { youtubeSearch } from '../functions/youtube-search/resource';
 import { songDownload } from '../functions/song-download/resource';
 
-const schema = defineData({
-  schema: (s) => ({
-    Track: s.model({
-      title: s.string().required(),
-      artist: s.string().required(),
-      album: s.string(),
-      duration: s.integer(),
-      s3Key: s.string().required(),
-      youtubeId: s.string(),
-    }).authorization((allow) => [allow.authenticated()]),
+const schema = a.schema({
+  Track: a.model({
+    title: a.string().required(),
+    artist: a.string().required(),
+    album: a.string(),
+    duration: a.integer(),
+    s3Key: a.string().required(),
+    youtubeId: a.string(),
+    // Inverse relationships
+    playlists: a.hasMany('PlaylistTrack', 'trackId'),
+    favorites: a.hasMany('Favorite', 'trackId'),
+  }).authorization((allow) => [allow.authenticated()]),
 
-    Playlist: s.model({
-      name: s.string().required(),
-      owner: s.string().required(),
-      tracks: s.hasMany('PlaylistTrack', 'playlistId'),
-    }).authorization((allow) => [allow.owner()]),
+  Playlist: a.model({
+    name: a.string().required(),
+    owner: a.string().required(),
+    tracks: a.hasMany('PlaylistTrack', 'playlistId'),
+  }).authorization((allow) => [allow.owner()]),
 
-    PlaylistTrack: s.model({
-      playlistId: s.id().required(),
-      trackId: s.id().required(),
-      playlist: s.belongsTo('Playlist', 'playlistId'),
-      track: s.belongsTo('Track', 'trackId'),
-    }).authorization((allow) => [allow.owner()]),
+  PlaylistTrack: a.model({
+    playlistId: a.id().required(),
+    trackId: a.id().required(),
+    playlist: a.belongsTo('Playlist', 'playlistId'),
+    track: a.belongsTo('Track', 'trackId'),
+  }).authorization((allow) => [allow.owner()]),
 
-    Favorite: s.model({
-      userId: s.string().required(),
-      trackId: s.id().required(),
-      track: s.belongsTo('Track', 'trackId'),
-    }).authorization((allow) => [allow.owner()]),
+  Favorite: a.model({
+    userId: a.string().required(),
+    trackId: a.id().required(),
+    track: a.belongsTo('Track', 'trackId'),
+  }).authorization((allow) => [allow.owner()]),
 
-    youtubeSearch: s
-      .query()
-      .arguments({
-        query: s.string().required(),
-      })
-      .returns(
-        s.customType({
-          id: s.string(),
-          title: s.string(),
-          artist: s.string(),
-          thumbnail: s.string(),
-        }).array()
-      )
-      .handler(s.externalAuth({ function: youtubeSearch }))
-      .authorization((allow) => [allow.authenticated()]),
-
-    songDownload: s
-      .mutation()
-      .arguments({
-        youtubeId: s.string().required(),
-        title: s.string().required(),
-        artist: s.string().required(),
-      })
-      .returns(
-        s.customType({
-          success: s.boolean(),
-          s3Key: s.string(),
-          error: s.string(),
-        })
-      )
-      .handler(s.externalAuth({ function: songDownload }))
-      .authorization((allow) => [allow.authenticated()]),
+  YoutubeSearchResult: a.customType({
+    id: a.string(),
+    title: a.string(),
+    artist: a.string(),
+    thumbnail: a.string(),
   }),
+
+  YoutubeDownloadResult: a.customType({
+    success: a.boolean(),
+    s3Key: a.string(),
+    error: a.string(),
+  }),
+
+  youtubeSearch: a
+    .query()
+    .arguments({
+      query: a.string().required(),
+    })
+    .returns(a.ref('YoutubeSearchResult').array())
+    .handler(a.handler.function(youtubeSearch))
+    .authorization((allow) => [allow.authenticated()]),
+
+  songDownload: a
+    .mutation()
+    .arguments({
+      youtubeId: a.string().required(),
+      title: a.string().required(),
+      artist: a.string().required(),
+    })
+    .returns(a.ref('YoutubeDownloadResult'))
+    .handler(a.handler.function(songDownload))
+    .authorization((allow) => [allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
-export const data = schema;
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'userPool',
+  },
+});

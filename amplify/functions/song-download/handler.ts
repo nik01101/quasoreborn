@@ -1,14 +1,13 @@
-import { Schema } from '../data/resource';
+import { type Schema } from '../../data/resource';
 import ytDlp from 'yt-dlp-exec';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { Readable } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const s3Client = new S3Client({});
 
-export const handler: Schema['song-download']['Handler'] = async (event) => {
-    const { youtubeId, title, artist } = event.arguments;
+export const handler: any = async (event: any) => {
+    const { youtubeId } = event.arguments;
     const bucketName = process.env.MUSIC_DRIVE_BUCKET_NAME;
 
     if (!bucketName) {
@@ -18,13 +17,10 @@ export const handler: Schema['song-download']['Handler'] = async (event) => {
     const tempFilePath = path.join('/tmp', `${youtubeId}.mp3`);
 
     try {
-        // Using yt-dlp to download and convert to 128kbps mp3
-        // Note: Lambda needs ffmpeg layer or we need to bundle it.
-        // Simplifying for now assuming ffmpeg is available in environment or layer.
         await ytDlp(`https://www.youtube.com/watch?v=${youtubeId}`, {
             extractAudio: true,
             audioFormat: 'mp3',
-            audioQuality: '128K',
+            audioQuality: 5,
             output: tempFilePath,
         });
 
@@ -40,8 +36,9 @@ export const handler: Schema['song-download']['Handler'] = async (event) => {
             })
         );
 
-        // Clean up temp file
-        fs.unlinkSync(tempFilePath);
+        if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+        }
 
         return {
             success: true,
