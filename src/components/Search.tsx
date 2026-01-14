@@ -1,9 +1,14 @@
+import { useState } from 'react';
+import { generateClient } from 'aws-amplify/api';
+import type { Schema } from '../../amplify/data/resource';
+import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
+
 export default function Search({ user }: { user: { username: string } }) {
     const client = generateClient<Schema>({ authMode: 'iam' });
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [downloading, setDownloading] = useState<string | null>(null);
+    const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -11,7 +16,11 @@ export default function Search({ user }: { user: { username: string } }) {
 
         setLoading(true);
         try {
-            const { data } = await client.queries.youtubeSearch({ query });
+            const { data, errors } = await client.queries.youtubeSearch({ query });
+            if (errors) {
+                console.error('Search errors:', errors);
+                return;
+            }
             setResults(data || []);
         } catch (err) {
             console.error('Search error:', err);
@@ -21,81 +30,122 @@ export default function Search({ user }: { user: { username: string } }) {
     };
 
     const handleDownload = async (item: any) => {
-        setDownloading(item.id);
+        setDownloadingIds(prev => new Set(prev).add(item.id));
         try {
-            const { data } = await client.mutations.songDownload({
+            const { data, errors } = await client.mutations.songDownload({
                 youtubeId: item.id,
                 title: item.title,
-                artist: item.artist,
+                artist: item.artist
             });
 
-            if (data?.success) {
-                // Now save to DynamoDB for metadata
-                await client.models.Track.create({
-                    title: item.title,
-                    artist: item.artist,
-                    s3Key: data.s3Key!,
-                    youtubeId: item.id,
-                    owner: user.username,
-                });
-                alert('Downloaded and added to library!');
-            } else {
-                alert('Download failed: ' + data?.error);
+            if (errors) {
+                console.error('Download errors:', errors);
+                return;
             }
+
+            // Also create a Track record in the database for the library
+            await client.models.Track.create({
+                title: item.title,
+                artist: item.artist,
+                s3Key: data?.s3Key || '',
+                youtubeId: item.id,
+                owner: user.username
+            });
+
         } catch (err) {
             console.error('Download error:', err);
         } finally {
-            setDownloading(null);
+            setDownloadingIds(prev => {
+                const updated = new Set(prev);
+                updated.delete(item.id);
+                return updated;
+            });
         }
     };
 
     return (
         <div className="search-container">
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <h2 className="gradient-text" style={{ marginBottom: '2rem' }}>Discover Music</h2>
+
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
-                    <SearchIcon size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                    <SearchIcon size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
                     <input
                         type="text"
                         placeholder="Search for songs or artists..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        style={{ width: '100%', paddingLeft: '2.5rem' }}
+                        style={{ paddingLeft: '3rem' }}
                     />
                 </div>
-                <button type="submit">Search</button>
+                <button type="submit" disabled={loading} style={{ width: '120px' }}>
+                    {loading ? <Loader2 className="animate-spin" /> : 'Search'}
+                </button>
             </form>
 
-            {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-                    <Loader2 className="animate-spin" />
-                </div>
-            ) : (
-                <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    {results.map((item) => (
-                        <div key={item.id} className="glass" style={{ padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="results-grid" style={{
+                marginTop: '3rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '2rem'
+            }}>
+                {results.map((item) => (
+                    <div key={item.id} className="glass card animate-in" style={{ padding: '1rem' }}>
+                        <div style={{ position: 'relative', paddingTop: '100%', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
                             {item.thumbnail ? (
-                                <img src={item.thumbnail} alt={item.title} style={{ width: '100%', borderRadius: '8px', aspectRatio: '16/9', objectFit: 'cover' }} />
+                                <img
+                                    src={item.thumbnail}
+                                    alt={item.title}
+                                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
                             ) : (
-                                <div style={{ width: '100%', borderRadius: '8px', aspectRatio: '16/9', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span>No Image</span>
+                                <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'linear-gradient(45deg, var(--bg-card), var(--bg-main))',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: 0.5
+                                }}>
+                                    <span style={{ fontSize: '0.8rem' }}>No Image</span>
                                 </div>
                             )}
-                            <div style={{ flex: 1 }}>
-                                <h3 style={{ fontSize: '0.9rem', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</h3>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.artist}</p>
-                            </div>
                             <button
+                                className="download-btn"
                                 onClick={() => handleDownload(item)}
-                                disabled={downloading === item.id}
-                                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: downloading === item.id ? 0.5 : 1 }}
+                                disabled={downloadingIds.has(item.id)}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '10px',
+                                    right: '10px',
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '50%',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
                             >
-                                {downloading === item.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                                Download
+                                {downloadingIds.has(item.id) ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <Download size={20} />
+                                )}
                             </button>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <h4 style={{
+                            fontSize: '0.95rem',
+                            marginBottom: '0.25rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                        }} title={item.title}>{item.title}</h4>
+                        <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>{item.artist}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
