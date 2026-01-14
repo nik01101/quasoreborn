@@ -3,6 +3,11 @@ import outputs from '../amplify_outputs.json'
 
 // Configure Amplify BEFORE importing any components to avoid race conditions 
 // where generateClient is called before the configuration is loaded.
+console.log('Amplify Config:', {
+  hasData: !!outputs.data,
+  hasApiKey: !!(outputs.data as any)?.api_key,
+  region: (outputs.data as any)?.aws_region
+});
 Amplify.configure(outputs)
 
 import React from 'react'

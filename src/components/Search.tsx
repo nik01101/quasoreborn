@@ -4,7 +4,7 @@ import type { Schema } from '../../amplify/data/resource';
 import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
 
 export default function Search({ user }: { user: { username: string } }) {
-    const client = generateClient<Schema>({ authMode: 'iam' });
+    const client = generateClient<Schema>({ authMode: 'apiKey' });
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
