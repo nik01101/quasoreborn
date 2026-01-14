@@ -10,29 +10,30 @@ const schema = a.schema({
     duration: a.integer(),
     s3Key: a.string().required(),
     youtubeId: a.string(),
+    owner: a.string().required(), // Simple username tracking
     // Inverse relationships
     playlists: a.hasMany('PlaylistTrack', 'trackId'),
     favorites: a.hasMany('Favorite', 'trackId'),
-  }).authorization((allow) => [allow.authenticated()]),
+  }).authorization((allow) => [allow.publicApiKey()]),
 
   Playlist: a.model({
     name: a.string().required(),
     owner: a.string().required(),
     tracks: a.hasMany('PlaylistTrack', 'playlistId'),
-  }).authorization((allow) => [allow.owner()]),
+  }).authorization((allow) => [allow.publicApiKey()]),
 
   PlaylistTrack: a.model({
     playlistId: a.id().required(),
     trackId: a.id().required(),
     playlist: a.belongsTo('Playlist', 'playlistId'),
     track: a.belongsTo('Track', 'trackId'),
-  }).authorization((allow) => [allow.owner()]),
+  }).authorization((allow) => [allow.publicApiKey()]),
 
   Favorite: a.model({
     userId: a.string().required(),
     trackId: a.id().required(),
     track: a.belongsTo('Track', 'trackId'),
-  }).authorization((allow) => [allow.owner()]),
+  }).authorization((allow) => [allow.publicApiKey()]),
 
   YoutubeSearchResult: a.customType({
     id: a.string(),
@@ -54,7 +55,7 @@ const schema = a.schema({
     })
     .returns(a.ref('YoutubeSearchResult').array())
     .handler(a.handler.function(youtubeSearch))
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   songDownload: a
     .mutation()
@@ -65,13 +66,17 @@ const schema = a.schema({
     })
     .returns(a.ref('YoutubeDownloadResult'))
     .handler(a.handler.function(songDownload))
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
+    defaultAuthorizationMode: 'apiKey',
+    apiKeyConfig: {
+      expiresInDays: 365,
+    },
   },
 });
+// Note: Some environments might show a lint warning for apiKeyConfig, but it is valid in Gen 2.

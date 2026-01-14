@@ -8,18 +8,29 @@ export const handler: any = async (event: any) => {
         throw new Error('YOUTUBE_API_KEY is not set');
     }
 
-    const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-            query
-        )}&type=video&maxResults=10&key=${API_KEY}`
-    );
+    try {
+        const response = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+                query
+            )}&type=video&maxResults=10&key=${API_KEY}`
+        );
 
-    const data = await response.json();
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('YouTube API error:', error);
+            throw new Error(`YouTube API failed: ${error.error?.message || response.statusText}`);
+        }
 
-    return (data.items || []).map((item: any) => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        artist: item.snippet.channelTitle,
-        thumbnail: item.snippet.thumbnails.default.url,
-    }));
+        const data = await response.json();
+
+        return (data.items || []).map((item: any) => ({
+            id: item.id.videoId,
+            title: item.snippet.title,
+            artist: item.snippet.channelTitle,
+            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+        }));
+    } catch (error: any) {
+        console.error('Search handler error:', error);
+        throw error;
+    }
 };

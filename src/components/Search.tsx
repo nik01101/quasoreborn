@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { generateClient } from 'aws-amplify/api';
-import { type Schema } from '../../amplify/data/resource';
+import type { Schema } from '../../amplify/data/resource';
 import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
 
 const client = generateClient<Schema>();
 
-export default function Search() {
+export default function Search({ user }: { user: { username: string } }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -42,6 +42,7 @@ export default function Search() {
                     artist: item.artist,
                     s3Key: data.s3Key!,
                     youtubeId: item.id,
+                    owner: user.username,
                 });
                 alert('Downloaded and added to library!');
             } else {
@@ -78,7 +79,13 @@ export default function Search() {
                 <div className="results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
                     {results.map((item) => (
                         <div key={item.id} className="glass" style={{ padding: '1rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <img src={item.thumbnail} alt={item.title} style={{ width: '100%', borderRadius: '8px', aspectRatio: '16/9', objectFit: 'cover' }} />
+                            {item.thumbnail ? (
+                                <img src={item.thumbnail} alt={item.title} style={{ width: '100%', borderRadius: '8px', aspectRatio: '16/9', objectFit: 'cover' }} />
+                            ) : (
+                                <div style={{ width: '100%', borderRadius: '8px', aspectRatio: '16/9', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span>No Image</span>
+                                </div>
+                            )}
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ fontSize: '0.9rem', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</h3>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.artist}</p>
