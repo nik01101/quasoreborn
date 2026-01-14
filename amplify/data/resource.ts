@@ -10,8 +10,7 @@ const schema = a.schema({
     duration: a.integer(),
     s3Key: a.string().required(),
     youtubeId: a.string(),
-    owner: a.string().required(), // Simple username tracking
-    // Inverse relationships
+    owner: a.string().required(),
     playlists: a.hasMany('PlaylistTrack', 'trackId'),
     favorites: a.hasMany('Favorite', 'trackId'),
   }).authorization((allow) => [allow.publicApiKey()]),
@@ -74,9 +73,5 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'apiKey',
-    apiKeyConfig: {
-      expiresInDays: 365,
-    },
   },
 });
-// Note: Some environments might show a lint warning for apiKeyConfig, but it is valid in Gen 2.
