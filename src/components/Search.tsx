@@ -1,11 +1,5 @@
-import { useState } from 'react';
-import { generateClient } from 'aws-amplify/api';
-import type { Schema } from '../../amplify/data/resource';
-import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
-
-const client = generateClient<Schema>({ authMode: 'identityPool' });
-
 export default function Search({ user }: { user: { username: string } }) {
+    const client = generateClient<Schema>({ authMode: 'iam' });
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);

@@ -1,16 +1,5 @@
-import { useState, useEffect } from 'react';
-import { generateClient } from 'aws-amplify/api';
-import type { Schema } from '../../amplify/data/resource';
-import { Play, Search as SearchIcon } from 'lucide-react';
-
-const client = generateClient<Schema>({ authMode: 'identityPool' });
-
-interface LibraryProps {
-    onPlay: (track: any) => void;
-    user: { username: string };
-}
-
 export default function Library({ onPlay, user }: LibraryProps) {
+    const client = generateClient<Schema>({ authMode: 'iam' });
     const [tracks, setTracks] = useState<any[]>([]);
     const [filteredTracks, setFilteredTracks] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
