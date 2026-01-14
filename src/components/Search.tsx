@@ -3,7 +3,7 @@ import { generateClient } from 'aws-amplify/api';
 import type { Schema } from '../../amplify/data/resource';
 import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
 
-const client = generateClient<Schema>({ authMode: 'apiKey' });
+const client = generateClient<Schema>({ authMode: 'identityPool' });
 
 export default function Search({ user }: { user: { username: string } }) {
     const [query, setQuery] = useState('');
