@@ -9,7 +9,7 @@ interface LibraryProps {
 }
 
 export default function Library({ onPlay, user }: LibraryProps) {
-    const client = generateClient<Schema>({ authMode: 'apiKey' });
+    const client = generateClient<Schema>({ authMode: 'iam' });
     const [tracks, setTracks] = useState<any[]>([]);
     const [filteredTracks, setFilteredTracks] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
