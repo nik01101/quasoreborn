@@ -17,6 +17,12 @@ if (finalOutputs.data) {
   if (OVERRIDE_KEY) {
     console.log('Using manual API Key override');
     (finalOutputs.data as any).api_key = OVERRIDE_KEY;
+    // Force the default authorization type to API Key
+    (finalOutputs.data as any).default_authorization_type = 'API_KEY';
+    // Ensure API_KEY is in the allowed types
+    if (!finalOutputs.data.authorization_types.includes('API_KEY')) {
+      finalOutputs.data.authorization_types.push('API_KEY');
+    }
   }
 }
 
