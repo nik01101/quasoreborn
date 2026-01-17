@@ -3,6 +3,7 @@ import { youtubeSearch } from '../functions/youtube-search/resource';
 import { songDownload } from '../functions/song-download/resource';
 
 const schema = a.schema({
+  // Track model for user library (Force update for deleted API)
   Track: a.model({
     title: a.string().required(),
     artist: a.string().required(),
