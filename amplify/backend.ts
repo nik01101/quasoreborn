@@ -20,6 +20,6 @@ backend.songDownload.resources.lambda.addEnvironment(
   backend.storage.resources.bucket.bucketName
 );
 
-// Grant the Lambda function permissions to write to the S3 bucket
+// Grant the Lambda function permissions to read and write to the S3 bucket
 // @ts-ignore
-backend.storage.resources.bucket.grantWrite(backend.songDownload.resources.lambda);
+backend.storage.resources.bucket.grantReadWrite(backend.songDownload.resources.lambda);
