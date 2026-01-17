@@ -63,9 +63,26 @@ export const handler: any = async (event: any) => {
         // 1. Download yt-dlp binary if not present
         if (!fs.existsSync(YTDL_PATH)) {
             console.log('Downloading yt-dlp binary from S3...');
-            const success = await downloadS3File(bucketName, 'bin/yt-dlp', YTDL_PATH);
-            if (!success) throw new Error('Could not download bin/yt-dlp from S3');
+            // Try specific linux binary first (user likely just uploaded this)
+            let success = await downloadS3File(bucketName, 'bin/yt-dlp_linux', YTDL_PATH);
+
+            if (!success) {
+                console.log('bin/yt-dlp_linux not found, trying bin/yt-dlp...');
+                success = await downloadS3File(bucketName, 'bin/yt-dlp', YTDL_PATH);
+            }
+
+            if (!success) throw new Error('Could not download bin/yt-dlp or bin/yt-dlp_linux from S3');
             chmodSync(YTDL_PATH, '755');
+
+            // DIAGNOSTIC logging
+            const stats = fs.statSync(YTDL_PATH);
+            const fd = fs.openSync(YTDL_PATH, 'r');
+            const buffer = Buffer.alloc(4);
+            fs.readSync(fd, buffer, 0, 4, 0);
+            fs.closeSync(fd);
+            console.log(`Binary downloaded. Size: ${stats.size} bytes. Header: ${buffer.toString('hex')} (${buffer.toString('utf8')})`);
+            // ELF Header is "7f454c46" (.ELF)
+            // Python Script Header is "2321" (#!)
         }
 
         // 2. Download and Convert Cookies
