@@ -21,6 +21,25 @@ export const handler: any = async (event: any) => {
         const videoUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
         const s3Key = `tracks/${youtubeId}.mp3`;
 
+        // Configure ytdl options
+        const ytdlOptions: any = {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+        };
+
+        // If cookies are provided, create an agent
+        // Valid cookies look like: [{ name: "cookie1", value: "value1" }, ...]
+        if (process.env.YOUTUBE_COOKIES) {
+            try {
+                const cookies = JSON.parse(process.env.YOUTUBE_COOKIES);
+                const agent = ytdl.createAgent(cookies);
+                ytdlOptions.agent = agent;
+                console.log('Using authenticated agent with cookies');
+            } catch (e) {
+                console.warn('Failed to parse YOUTUBE_COOKIES, proceeding without auth:', e);
+            }
+        }
+
         // Create a PassThrough stream
         const passThrough = new PassThrough();
 
@@ -36,10 +55,7 @@ export const handler: any = async (event: any) => {
         });
 
         // Pipe the YouTube audio stream to the PassThrough stream
-        ytdl(videoUrl, {
-            filter: 'audioonly',
-            quality: 'highestaudio',
-        }).pipe(passThrough);
+        ytdl(videoUrl, ytdlOptions).pipe(passThrough);
 
         // Wait for the upload to complete
         await upload.done();
