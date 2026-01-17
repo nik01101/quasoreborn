@@ -1,4 +1,3 @@
-```typescript
 import { type Schema } from '../../data/resource';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -19,7 +18,7 @@ const downloadS3File = async (bucket: string, key: string, destPath: string) => 
             Key: key
         }));
         if (!response.Body) throw new Error('No body in S3 response');
-        
+
         const fileStream = fs.createWriteStream(destPath);
         // @ts-ignore
         await new Promise((resolve, reject) => {
@@ -29,7 +28,7 @@ const downloadS3File = async (bucket: string, key: string, destPath: string) => 
         });
         return true;
     } catch (e: any) {
-        console.error(`Failed to download ${ key }: `, e.message);
+        console.error(`Failed to download ${key}:`, e.message);
         return false;
     }
 };
@@ -43,7 +42,7 @@ const jsonToNetscape = (jsonCookies: any[]) => {
         const path = c.path || '/';
         const secure = c.secure ? 'TRUE' : 'FALSE';
         const expiration = c.expirationDate ? Math.floor(c.expirationDate) : (Math.floor(Date.now() / 1000) + 31536000);
-        output += `${ domain } \t${ includeSubdomains } \t${ path } \t${ secure } \t${ expiration } \t${ c.name } \t${ c.value } \n`;
+        output += `${domain}\t${includeSubdomains}\t${path}\t${secure}\t${expiration}\t${c.name}\t${c.value}\n`;
     });
     return output;
 };
@@ -60,7 +59,7 @@ export const handler: any = async (event: any) => {
 
     try {
         process.chdir('/tmp');
-        
+
         // 1. Download yt-dlp binary if not present
         if (!fs.existsSync(YTDL_PATH)) {
             console.log('Downloading yt-dlp binary from S3...');
@@ -71,78 +70,78 @@ export const handler: any = async (event: any) => {
 
         // 2. Download and Convert Cookies
         if (!fs.existsSync(COOKIES_TXT_PATH)) {
-             console.log('Fetching cookies.json from S3...');
-             const cookieSuccess = await downloadS3File(bucketName, 'config/cookies.json', COOKIES_JSON_PATH);
-             if (cookieSuccess) {
-                 try {
-                     const jsonContent = fs.readFileSync(COOKIES_JSON_PATH, 'utf-8');
-                     const cookies = JSON.parse(jsonContent);
-                     const netscapeContent = jsonToNetscape(cookies);
-                     fs.writeFileSync(COOKIES_TXT_PATH, netscapeContent);
-                     console.log('Converted cookies to Netscape format.');
-                 } catch (e) {
-                     console.warn('Cookie conversion failed:', e);
-                 }
-             }
+            console.log('Fetching cookies.json from S3...');
+            const cookieSuccess = await downloadS3File(bucketName, 'config/cookies.json', COOKIES_JSON_PATH);
+            if (cookieSuccess) {
+                try {
+                    const jsonContent = fs.readFileSync(COOKIES_JSON_PATH, 'utf-8');
+                    const cookies = JSON.parse(jsonContent);
+                    const netscapeContent = jsonToNetscape(cookies);
+                    fs.writeFileSync(COOKIES_TXT_PATH, netscapeContent);
+                    console.log('Converted cookies to Netscape format.');
+                } catch (e) {
+                    console.warn('Cookie conversion failed:', e);
+                }
+            }
         }
 
         const videoUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-const s3Key = `tracks/${youtubeId}.mp3`;
-const passThrough = new PassThrough();
+        const s3Key = `tracks/${youtubeId}.mp3`;
+        const passThrough = new PassThrough();
 
-console.log(`Starting Upload to ${s3Key}`);
-const upload = new Upload({
-    client: s3Client,
-    params: {
-        Bucket: bucketName,
-        Key: s3Key,
-        Body: passThrough,
-        ContentType: 'audio/mpeg',
-    },
-});
+        console.log(`Starting Upload to ${s3Key}`);
+        const upload = new Upload({
+            client: s3Client,
+            params: {
+                Bucket: bucketName,
+                Key: s3Key,
+                Body: passThrough,
+                ContentType: 'audio/mpeg',
+            },
+        });
 
-// 3. Spawn yt-dlp
-const args = [
-    '--extract-audio',
-    '--audio-format', 'mp3',
-    '--audio-quality', '5', // Decent quality, small size
-    '-o', '-', // Pipe to stdout
-    videoUrl
-];
+        // 3. Spawn yt-dlp
+        const args = [
+            '--extract-audio',
+            '--audio-format', 'mp3',
+            '--audio-quality', '5', // Decent quality, small size
+            '-o', '-', // Pipe to stdout
+            videoUrl
+        ];
 
-if (fs.existsSync(COOKIES_TXT_PATH)) {
-    args.unshift('--cookies', COOKIES_TXT_PATH);
-    console.log('Using cookies options');
-}
+        if (fs.existsSync(COOKIES_TXT_PATH)) {
+            args.unshift('--cookies', COOKIES_TXT_PATH);
+            console.log('Using cookies options');
+        }
 
-console.log(`Spawning yt-dlp with args: ${args.join(' ')}`);
-const child = spawn(YTDL_PATH, args);
+        console.log(`Spawning yt-dlp with args: ${args.join(' ')}`);
+        const child = spawn(YTDL_PATH, args);
 
-child.stdout.pipe(passThrough);
+        child.stdout.pipe(passThrough);
 
-child.stderr.on('data', (data) => console.log(`[yt-dlp]: ${data}`));
+        child.stderr.on('data', (data: any) => console.log(`[yt-dlp]: ${data}`));
 
-await new Promise((resolve, reject) => {
-    child.on('close', (code) => {
-        if (code === 0) resolve(true);
-        else reject(new Error(`yt-dlp exited with code ${code}`));
-    });
-    child.on('error', reject);
-});
+        await new Promise((resolve, reject) => {
+            child.on('close', (code: number) => {
+                if (code === 0) resolve(true);
+                else reject(new Error(`yt-dlp exited with code ${code}`));
+            });
+            child.on('error', reject);
+        });
 
-await upload.done();
-console.log('Upload complete');
+        await upload.done();
+        console.log('Upload complete');
 
-return {
-    success: true,
-    s3Key,
-};
+        return {
+            success: true,
+            s3Key,
+        };
 
     } catch (error) {
-    console.error('Download error:', error);
-    return {
-        success: false,
-        error: (error as Error).message,
-    };
-}
+        console.error('Download error:', error);
+        return {
+            success: false,
+            error: (error as Error).message,
+        };
+    }
 };
