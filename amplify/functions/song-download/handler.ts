@@ -24,7 +24,7 @@ const downloadS3File = async (bucket: string, key: string, destPath: string) => 
         await new Promise((resolve, reject) => {
             (response.Body as Readable).pipe(fileStream)
                 .on('error', reject)
-                .on('finish', resolve);
+                .on('finish', () => resolve(true));
         });
         return true;
     } catch (e: any) {
