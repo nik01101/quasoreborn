@@ -45,13 +45,13 @@ export default function Library({ onPlay, user }: LibraryProps) {
     return (
         <div className="library-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 className="gradient-text">Your Library</h2>
+                <h2 className="gradient-text">Tu Biblioteca</h2>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <div style={{ position: 'relative' }}>
                         <SearchIcon size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                         <input
                             type="text"
-                            placeholder="Filter library..."
+                            placeholder="Filtrar biblioteca..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{ paddingLeft: '2.5rem', width: '250px' }}
@@ -62,7 +62,7 @@ export default function Library({ onPlay, user }: LibraryProps) {
 
             {filteredTracks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '4rem', opacity: 0.5 }}>
-                    <p>No songs in your library yet. Search and download some!</p>
+                    <p>No hay canciones en tu biblioteca todavía. ¡Busca y descarga algunas!</p>
                 </div>
             ) : (
                 <div className="tracks-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

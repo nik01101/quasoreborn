@@ -67,7 +67,7 @@ export default function Player({ currentTrack }: PlayerProps) {
                     <Music size={24} color="var(--text-secondary)" />
                 </div>
                 <div style={{ overflow: 'hidden' }}>
-                    <h4 style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentTrack?.title || 'No track selected'}</h4>
+                    <h4 style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentTrack?.title || 'Ninguna pista seleccionada'}</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{currentTrack?.artist || '-'}</p>
                 </div>
             </div>

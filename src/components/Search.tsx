@@ -81,21 +81,21 @@ export default function Search({ user }: { user: { username: string } }) {
     return (
         <div className="search-container">
             {/* ... (render logic) ... */}
-            <h2 className="gradient-text" style={{ marginBottom: '2rem' }}>Discover Music</h2>
+            <h2 className="gradient-text" style={{ marginBottom: '2rem' }}>Descubrir Música</h2>
 
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                     <SearchIcon size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
                     <input
                         type="text"
-                        placeholder="Search for songs or artists..."
+                        placeholder="Buscar canciones o artistas..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         style={{ paddingLeft: '3rem' }}
                     />
                 </div>
                 <button type="submit" disabled={loading} style={{ width: '120px' }}>
-                    {loading ? <Loader2 className="animate-spin" /> : 'Search'}
+                    {loading ? <Loader2 className="animate-spin" /> : 'Buscar'}
                 </button>
             </form>
 
