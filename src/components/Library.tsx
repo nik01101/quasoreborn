@@ -81,7 +81,10 @@ export default function Library({ onPlay, user }: LibraryProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                            onClick={() => onPlay(track)}
+                            onClick={() => {
+                                console.log('Library: Clicked track', track);
+                                onPlay(track);
+                            }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
                                 <div className="play-icon" style={{ color: 'var(--primary)' }}>

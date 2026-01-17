@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { generateClient } from 'aws-amplify/api';
 import type { Schema } from '../../amplify/data/resource';
-import { Search as SearchIcon, Download, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, Download, Loader2, Check, XCircle } from 'lucide-react';
 
 export default function Search({ user }: { user: { username: string } }) {
     const client = generateClient<Schema>({ authMode: 'iam' });
@@ -9,8 +9,10 @@ export default function Search({ user }: { user: { username: string } }) {
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+    const [downloadStatus, setDownloadStatus] = useState<Record<string, 'success' | 'error'>>({});
 
     const handleSearch = async (e: React.FormEvent) => {
+        // ... (existing search logic) ...
         e.preventDefault();
         if (!query.trim()) return;
 
@@ -31,6 +33,12 @@ export default function Search({ user }: { user: { username: string } }) {
 
     const handleDownload = async (item: any) => {
         setDownloadingIds(prev => new Set(prev).add(item.id));
+        setDownloadStatus(prev => {
+            const next = { ...prev };
+            delete next[item.id]; // Reset status
+            return next;
+        });
+
         try {
             const { data, errors } = await client.mutations.songDownload({
                 youtubeId: item.id,
@@ -38,8 +46,11 @@ export default function Search({ user }: { user: { username: string } }) {
                 artist: item.artist
             });
 
-            if (errors) {
-                console.error('Download errors:', errors);
+            if (errors || !data?.success) {
+                const errorMsg = errors ? JSON.stringify(errors) : data?.error;
+                console.error('Download errors:', errorMsg);
+                alert(`Download failed: ${errorMsg}`);
+                setDownloadStatus(prev => ({ ...prev, [item.id]: 'error' }));
                 return;
             }
 
@@ -52,8 +63,12 @@ export default function Search({ user }: { user: { username: string } }) {
                 owner: user.username
             });
 
+            setDownloadStatus(prev => ({ ...prev, [item.id]: 'success' }));
+
         } catch (err) {
             console.error('Download error:', err);
+            alert('Download failed due to a network or server error.');
+            setDownloadStatus(prev => ({ ...prev, [item.id]: 'error' }));
         } finally {
             setDownloadingIds(prev => {
                 const updated = new Set(prev);
@@ -65,6 +80,7 @@ export default function Search({ user }: { user: { username: string } }) {
 
     return (
         <div className="search-container">
+            {/* ... (render logic) ... */}
             <h2 className="gradient-text" style={{ marginBottom: '2rem' }}>Discover Music</h2>
 
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem' }}>
@@ -114,7 +130,7 @@ export default function Search({ user }: { user: { username: string } }) {
                             <button
                                 className="download-btn"
                                 onClick={() => handleDownload(item)}
-                                disabled={downloadingIds.has(item.id)}
+                                disabled={downloadingIds.has(item.id) || downloadStatus[item.id] === 'success'}
                                 style={{
                                     position: 'absolute',
                                     bottom: '10px',
@@ -125,11 +141,16 @@ export default function Search({ user }: { user: { username: string } }) {
                                     padding: 0,
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    backgroundColor: downloadStatus[item.id] === 'success' ? '#22c55e' : (downloadStatus[item.id] === 'error' ? '#ef4444' : undefined)
                                 }}
                             >
                                 {downloadingIds.has(item.id) ? (
                                     <Loader2 className="animate-spin" size={20} />
+                                ) : downloadStatus[item.id] === 'success' ? (
+                                    <Check size={20} />
+                                ) : downloadStatus[item.id] === 'error' ? (
+                                    <XCircle size={20} />
                                 ) : (
                                     <Download size={20} />
                                 )}

@@ -13,18 +13,23 @@ export default function Player({ currentTrack }: PlayerProps) {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
     useEffect(() => {
+        console.log('AudioPlayer: currentTrack changed', currentTrack);
         if (currentTrack?.s3Key) {
             loadTrack(currentTrack.s3Key);
+        } else {
+            console.log('AudioPlayer: No s3Key in currentTrack');
         }
     }, [currentTrack]);
 
     const loadTrack = async (key: string) => {
+        console.log('AudioPlayer: Loading track with key:', key);
         try {
             const { url } = await getUrl({ path: key });
+            console.log('AudioPlayer: Generated URL:', url.toString());
             setAudioUrl(url.toString());
             setIsPlaying(true);
         } catch (err) {
-            console.error('Error fetching audio URL:', err);
+            console.error('AudioPlayer: Error fetching audio URL:', err);
         }
     };
 
