@@ -13,7 +13,7 @@
     "@aws-amplify/ui-react": "^6.13.2",
     "@aws-sdk/client-s3": "^3.971.0",
     "@aws-sdk/lib-storage": "^3.971.0",
-    "@distube/ytdl-core": "^4.15.9",
+    "@distube/ytdl-core": "^4.16.12",
     "aws-amplify": "^6.15.9",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
