@@ -63,7 +63,8 @@ export const handler: any = async (event: any) => {
         // 1. Download yt-dlp binary if not present
         if (!fs.existsSync(YTDL_PATH)) {
             console.log('Downloading yt-dlp binary from S3...');
-            // Try specific linux binary first (user likely just uploaded this)
+
+            // Try specific linux binary first
             let success = await downloadS3File(bucketName, 'bin/yt-dlp_linux', YTDL_PATH);
 
             if (!success) {
@@ -75,27 +76,37 @@ export const handler: any = async (event: any) => {
             chmodSync(YTDL_PATH, '755');
 
             // DIAGNOSTIC logging
-            const stats = fs.statSync(YTDL_PATH);
-            const fd = fs.openSync(YTDL_PATH, 'r');
-            const buffer = Buffer.alloc(4);
-            fs.readSync(fd, buffer, 0, 4, 0);
-            fs.closeSync(fd);
-            console.log(`Binary downloaded. Size: ${stats.size} bytes. Header: ${buffer.toString('hex')} (${buffer.toString('utf8')})`);
-            // ELF Header is "7f454c46" (.ELF)
-            // Python Script Header is "2321" (#!)
+            try {
+                const stats = fs.statSync(YTDL_PATH);
+                console.log(`Binary downloaded. Size: ${stats.size} bytes.`);
+            } catch (e) {
+                console.log('Error checking binary stats');
+            }
         }
 
-        // 2. Download and Convert Cookies
-        if (!fs.existsSync(COOKIES_TXT_PATH)) {
-            console.log('Fetching cookies.json from S3...');
-            const cookieSuccess = await downloadS3File(bucketName, 'config/cookies.json', COOKIES_JSON_PATH);
-            if (cookieSuccess) {
+        // 2. Download Cookies (Support direct .txt or .json)
+        let cookiesReady = false;
+
+        // A. Try direct Netscape cookies.txt first (Preferred)
+        console.log('Checking for config/cookies.txt...');
+        const txtSuccess = await downloadS3File(bucketName, 'config/cookies.txt', COOKIES_TXT_PATH);
+        if (txtSuccess) {
+            console.log('Using direct cookies.txt from S3.');
+            cookiesReady = true;
+        }
+
+        // B. Fallback to cookies.json
+        if (!cookiesReady) {
+            console.log('Checking for config/cookies.json...');
+            const jsonSuccess = await downloadS3File(bucketName, 'config/cookies.json', COOKIES_JSON_PATH);
+            if (jsonSuccess) {
                 try {
                     const jsonContent = fs.readFileSync(COOKIES_JSON_PATH, 'utf-8');
                     const cookies = JSON.parse(jsonContent);
                     const netscapeContent = jsonToNetscape(cookies);
                     fs.writeFileSync(COOKIES_TXT_PATH, netscapeContent);
-                    console.log('Converted cookies to Netscape format.');
+                    console.log('Converted cookies.json to Netscape format.');
+                    cookiesReady = true;
                 } catch (e) {
                     console.warn('Cookie conversion failed:', e);
                 }
@@ -117,18 +128,23 @@ export const handler: any = async (event: any) => {
             },
         });
 
-        // 3. Spawn yt-dlp
+        // 3. Spawn yt-dlp with anti-bot flags
         const args = [
             '--extract-audio',
             '--audio-format', 'mp3',
-            '--audio-quality', '5', // Decent quality, small size
-            '-o', '-', // Pipe to stdout
+            '--audio-quality', '5',
+            '--no-cache-dir',        // Don't use cache
+            '--no-check-certificates', // Sometimes helps
+            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // Spoof UA
+            '-o', '-',
             videoUrl
         ];
 
-        if (fs.existsSync(COOKIES_TXT_PATH)) {
+        if (cookiesReady) {
             args.unshift('--cookies', COOKIES_TXT_PATH);
-            console.log('Using cookies options');
+            console.log('Using authenticated cookies.');
+        } else {
+            console.warn('NO COOKIES FOUND. Download likely to fail.');
         }
 
         console.log(`Spawning yt-dlp with args: ${args.join(' ')}`);
